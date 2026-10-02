@@ -1,0 +1,58 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: padosipro-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+
+      DATABASE_URL: "postgresql://padosipro:padosipro@postgres:5432/padosipro?schema=public"
+
+      JWT_SECRET: "change-this-development-secret"
+      JWT_EXPIRES_IN: "7d"
+
+      SMTP_HOST: "mailpit"
+      SMTP_PORT: 1025
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      SMTP_FROM: "PadosiPro <no-reply@padosipro.local>"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  postgres:
+    image: postgres:16
+    container_name: padosipro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: padosipro
+      POSTGRES_PASSWORD: padosipro
+      POSTGRES_DB: padosipro
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U padosipro -d padosipro" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: padosipro-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  postgres_data:

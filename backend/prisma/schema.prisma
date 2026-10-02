@@ -1,0 +1,94 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+enum OtpPurpose {
+    EMAIL_VERIFICATION
+}
+
+model User {
+    id            String  @id @default(uuid())
+    email         String  @unique
+    passwordHash  String
+    emailVerified Boolean @default(false)
+
+    profile   Profile?
+    otps      Otp[]
+    userTasks UserTask[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Profile {
+    id     String @id @default(uuid())
+    userId String @unique
+
+    name         String
+    mobile       String
+    address      String
+    businessName String?
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Otp {
+    id     String @id @default(uuid())
+    userId String
+
+    codeHash String
+    purpose  OtpPurpose
+
+    expiresAt DateTime
+    attempts  Int      @default(0)
+    used      Boolean  @default(false)
+
+    createdAt DateTime @default(now())
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId, purpose])
+}
+
+model Category {
+    id   String @id @default(uuid())
+    name String @unique
+
+    tasks Task[]
+
+    createdAt DateTime @default(now())
+}
+
+model Task {
+    id          String @id @default(uuid())
+    name        String
+    description String
+    categoryId  String
+
+    category  Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    userTasks UserTask[]
+
+    createdAt DateTime @default(now())
+
+    @@index([categoryId])
+}
+
+model UserTask {
+    id     String @id @default(uuid())
+    userId String
+    taskId String
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+
+    @@unique([userId, taskId])
+}
